@@ -24,7 +24,7 @@ Please refer to `smartsim_summit_installer.sh` in this directory and the documen
 for how to build SmartSim and SmartRedis on Summit [here](https://www.craylabs.org/docs/installation.html).
 
 Notice that PyTorch needs a newer GCC version, but only at runtime. Therefore,
-when running a PyTorch use case, the build instructions do not change, but 
+when running a PyTorch use case, the build instructions do not change, but
 the module `gcc/11.4.2` has to be loaded before execution.
 
 ## Examples
@@ -94,7 +94,7 @@ nodes.
 
 ```bash
 # fill in account and queue parameters
-bsub -Is -W 01:00 -J SmartSim-int -nnodes 1 -P <project> -alloc_flags smt1 $SHELL
+bsub -Is -W 01:00 -J SmartSim-int -nnodes 3 -P <project> -alloc_flags smt1 $SHELL
 ```
 After obtaining the allocation, make sure to module load your conda or python environment
 with SmartSim and SmartRedis installed.
@@ -104,5 +104,3 @@ Run the workflow with
 ```bash
 python launch_database_cluster.py
 ```
-
-

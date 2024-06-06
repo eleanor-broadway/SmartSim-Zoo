@@ -163,7 +163,7 @@ producer to run on a separate node.
 
 ```bash
 # fill in account and queue parameters
-qsub -l select=3:ncpus=2:mpiprocs:2 -l walltime=00:20:00 -A <account> -q <queue> -I
+qsub -l select=4:ncpus=2:mpiprocs:2 -l walltime=00:20:00 -A <account> -q <queue> -I
 ```
 After obtaining the allocation, make sure to module load your conda or python environment
 with SmartSim and SmartRedis installed, as well as module load OpenMPI and gcc 8.3 as
@@ -205,6 +205,3 @@ and run the workflow with
 ```bash
 python launch_ensemble_batch.py
 ```
-
-
-

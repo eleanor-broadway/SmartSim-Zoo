@@ -7,11 +7,11 @@ from smartsim import Experiment
 Launch a distributed, in memory database cluster and a model that
 sends data to the database.
 
-This example runs in an interactive allocation with at least three
+This example runs in an interactive allocation with at least four
 nodes and 2 processors per node. be sure to include mpirprocs in you
 allocation.
 
-i.e. qsub -n 3 -l walltime=00:20:00 -A <account> -q <queue> -I
+i.e. qsub -n 4 -l walltime=00:20:00 -A <account> -q <queue> -I
 """
 
 
