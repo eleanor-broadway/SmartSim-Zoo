@@ -143,7 +143,7 @@ as well.
 
 ```bash
 # fill in account and queue parameters
-qsub -n 3 -l walltime=00:20:00 -A <account> -q <queue> -I
+qsub -n 4 -l walltime=00:20:00 -A <account> -q <queue> -I
 ```
 After obtaining the allocation, make sure to module load your conda or python environment
 with SmartSim and SmartRedis installed.
