@@ -73,7 +73,7 @@ for epoch in range(1):
         )
         start_time = time()
 
-compiled_model = torch.jit.script(model)
+compiled_model = torch.jit.trace(model, train_samples[0:10])
 buffer = io.BytesIO()
 torch.jit.save(compiled_model, buffer)
 
