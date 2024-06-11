@@ -40,10 +40,9 @@ while not client.model_exists("trained_model"):
 mnist_test_samples = np.stack([to_tensor(sample) for sample in mnist_test.data.numpy()])
 mnist_test_labels = mnist_test.targets.detach().numpy()
 
-batch_size = 128
 mnist_dataset = Dataset("MNIST_test")
-mnist_dataset.add_tensor("samples", mnist_test_samples[0:batch_size])
-mnist_dataset.add_tensor("labels", mnist_test_labels[0:batch_size])
+mnist_dataset.add_tensor("samples", mnist_test_samples)
+mnist_dataset.add_tensor("labels", mnist_test_labels)
 
 client.put_dataset(mnist_dataset)
 
@@ -61,4 +60,4 @@ client.run_script(
 )
 
 accuracy = client.get_tensor("{MNIST_test}.accuracy")[0] * 100
-print(f"Batch accuracy is {accuracy}%")
+print(f"Accuracy is {accuracy}%")

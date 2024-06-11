@@ -256,3 +256,16 @@ node running
 python get_mnist.py
 ```
 from the directory containing the driver script.
+
+---
+**NOTE**
+
+If Redis returns a `Resource temporarily unavailable` error, you
+can increase the SmartRedis socket timeout through the corresponding
+environment variable, e.g.:
+
+```bash
+export SR_SOCKET_TIMEOUT=20000
+```
+
+---
