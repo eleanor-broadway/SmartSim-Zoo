@@ -20,7 +20,7 @@ def launch_cluster_orc(experiment, port):
     """Just spin up a database cluster, check the status
     and tear it down"""
 
-    db = experiment.create_database(port=port, db_nodes=3)
+    db = experiment.create_database(port=port, db_nodes=3, interface=['hsn0', 'hsn1'])
 
     # generate directories for output files
     # pass in objects to make dirs for

@@ -27,7 +27,7 @@ from smartsim import Experiment
 def launch_orc(experiment, port):
     """Just spin up a single node database, check the status"""
 
-    db = experiment.create_database(port=port)
+    db = experiment.create_database(port=port, interface=['hsn0', 'hsn1'])
 
     # generate directories for output files
     # pass in objects to make dirs for
@@ -49,6 +49,9 @@ def create_loader(experiment):
 
     aprun = experiment.create_run_settings(exe="python", exe_args="mnist_loader.py")
     aprun.set_tasks(1)
+    # aprun.set_tasks_per_node(1)
+    # aprun.set_nodes(1)
+    # aprun.set_verbose_launch(True)
     producer = experiment.create_model("loader", aprun)
 
     # create directories for the output files and copy
@@ -65,6 +68,9 @@ def create_trainer(experiment):
 
     aprun = experiment.create_run_settings(exe="python", exe_args="mnist_trainer.py")
     aprun.set_tasks(1)
+    # aprun.set_tasks_per_node(1)
+    # aprun.set_nodes(1)
+    aprun.set_verbose_launch(True)
     producer = experiment.create_model("trainer", aprun)
 
     # create directories for the output files and copy

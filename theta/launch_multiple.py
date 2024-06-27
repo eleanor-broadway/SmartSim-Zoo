@@ -6,7 +6,7 @@ def launch_cluster_orc(experiment, port):
     and tear it down"""
 
     # batch = False to launch on existing allocation
-    db_cluster = experiment.create_database(port=port, db_nodes=3)
+    db_cluster = experiment.create_database(port=port, db_nodes=3, interface=['hsn0', 'hsn1'])
 
     # generate directories for output files
     # pass in objects to make dirs for
