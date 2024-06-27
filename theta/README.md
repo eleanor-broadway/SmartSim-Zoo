@@ -1,254 +1,234 @@
+SmartSim + SmartRedis
+=======================
 
-# Theta Tutorials
+> **See [old README](old-README.md) for more information, this just contains changes required for ARCHER2.** 
 
-Theta is the supercomputer at the Argonne National Lab. The
-following tutorials are meant to aide users on Theta with getting used to the
-different types of workflows that are possible with SmartSim.
+1. Automates deployment of HPC worloads (Redis).
+2. Makes ML frameworks callable from Fortran/C HPC simulations.
 
+SmartSim = Infrastructure library\
+SmartRedis = Client library 
 
-## Prerequisites
+Example - [Online Training:](https://www.craylabs.org/docs/tutorials/ml_training/surrogate/train_surrogate.html)
+* A NN is trained to act like a surrogate model to solve a physical problem. 
+* The training dataset is constructed by running simulations while the model is being trained. 
+* For each simulation, the initial conditions and the steady state soliution are put on the database. 
+* The data will be used to train a NN
+* SmartSim is used to launch the database, the simularion and the NN training locally but in separate processes. 
+* Running an ensemble of simulations. 
 
-On Theta, the launcher is Cobalt. SmartSim can be used to launch applications
-with the `aprun` or `mpirun` commands.
+[Documentation here.](https://www.craylabs.org/docs/overview.html)
 
-The following module commands were utilized to run the examples
+</br>
+</br>
+</br>
+
+Building for ARCHER2: 
+----------------------
 
 ```bash
-module purge
-module load PrgEnv-cray
-module load cray-mpich
-module load craype-network-aries
-module unload atp perftools-base/20.06.0 cray-libsci/20.06.1
-module load conda
+export PREFIX=/path/to/install/location
+module load cmake
+module swap PrgEnv-cray PrgEnv-gnu
+module load cray-fftw
+
+cd $PREFIX
 ```
 
-With this environment loaded, users will need to build and install both SmartSim and
-SmartRedis through pip. Users are advised to build on
-compute nodes, but the whole process can be run on any node.
-Usually we recommend users installing or loading miniconda and
-using the pip that comes with that installation.
+Create a new environment: 
+```bash 
+wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash ./Miniconda3-latest-Linux-x86_64.sh
+#When installing make sure you install miniconda in the correct PREFIX 
+#Make sure that miniconda is install in /work not /home
 
-The following commands were utilized to build SmartSim on Theta,
-after the needed Conda environment was loaded.
+eval "$($PREFIX/miniconda3/bin/conda shell.bash hook)" 
+conda create -n a2-smartsim python=3.10
+conda activate a2-smartsim
+#Check set-up is NOT pointing to a centralised location: 
+which python
+```
 
-```bash
-export CRAY_CPU_TARGET=x86-64
+<!-- Installing git-lfs from source if needed: 
+
+```bash 
+# Install go 
+wget https://go.dev/dl/go1.22.3.linux-amd64.tar.gz
+tar -xvf go1.22.3.linux-amd64.tar.gz 
+export PATH=$PATH:/work/z19/z19/eleanorb/wind-rl/smartsim/go/bin/
+
+wget https://github.com/git-lfs/git-lfs/releases/download/v3.5.1/git-lfs-linux-amd64-v3.5.1.tar.gz
+tar -xvf git-lfs-linux-amd64-v3.5.1.tar.gz
+cd git-lfs-3.5.1/
+# Update install path to /work/z19/z19/eleanorb/wind-rl/smartsim/git-lfs 
+mkdir /work/z19/z19/eleanorb/wind-rl/smartsim/git-lfs
+./install.sh 
+
+# Git LFS initialized.
+
+export PATH=$PATH:/work/z19/z19/eleanorb/wind-rl/smartsim/git-lfs/bin/
+git lfs version
+git-lfs/3.5.1 (GitHub; linux amd64; go 1.21.7; git e237bb3a)
+
+``` -->
+
+Build SmartSim and SmartRedis: 
+```bash 
 export CRAYPE_LINK_TYPE=dynamic
-export CC=$(which cc)
-export CXX=$(which CC)
-conda install swig cmake git-lfs -y
-pip install smartsim[ml]
-smart build --device cpu --onnx
+git clone https://github.com/CrayLabs/SmartSim.git
+cd SmartSim
+pip install -e .[dev]
+cd .. 
+git clone https://github.com/CrayLabs/SmartRedis.git
+cd SmartRedis
+make lib-with-fortran
+pip install .
+cd ../SmartSim 
+conda install git-lfs -y 
+git lfs version
+# git-lfs/3.5.1 (GitHub; linux amd64; go 1.21.7; git e237bb3a)
+smart build --device cpu
 ```
 
-Alternatively, if a bleeding-edge version of SmartSim or SmartRedis is
-required, the installer script `smartsim_theta_installer.sh` is available in this repository. It will
-create a conda environment on the lustre filesystem (this can be modified): the
-environment variable `PROJECT` has to be modified according to the user's
-available project.
+Example output: 
+```bash 
+[SmartSim] INFO Running SmartSim build process...
+[SmartSim] INFO Checking requested versions...
+[SmartSim] INFO Redis build complete!
 
-If you run into trouble with the installation, please consult the installation
-documentation [here](https://www.craylabs.org/docs/installation.html).
+ML Backends Requested
+╒════════════╤════════╤═══════╕
+│ PyTorch    │ 2.0.1  │ True  │
+│ TensorFlow │ 2.13.1 │ True  │
+│ ONNX       │ 1.14.1 │ False │
+╘════════════╧════════╧═══════╛
 
-## Examples
+Building for GPU support: False
 
-Three of the examples utilize interactive allocations, which is the preferred method of
-launching SmartSim.
+[SmartSim] INFO Building RedisAI version 1.2.7 from https://github.com/RedisAI/RedisAI.git/
+[SmartSim] INFO ML Backends and RedisAI build complete!
+[SmartSim] INFO Torch, Tensorflow backend(s) built
+[SmartSim] INFO Torch version not found in python environment. Attempting to install via `pip`
+[SmartSim] WARNING Python Env Status Warning!
+Requested Packages are Missing or Conflicting:
 
-All the examples use `aprun` as a launch command. Examples for `mpirun` are available in the Theta GPU directory of this repository.
+Missing:
+	tensorflow==2.13.1
 
-----------
-
-### 1. launch_distributed_model.py
-
-Launch a distributed model with `aprun` through SmartSim. This could represent
-a simulation or other workload that contains the SmartRedis clients and communicates
-with the Orchestrator.
-
-This example runs in an interactive allocation with at least three
-nodes and 20 processors per node. Some possible queue parameters
-include `debug-flat-quad` and `debug-cache-quad`.
-
-```bash
-# fill in account and queue parameters
-qsub -n 3 -I --time=00:25:00 -A <account> -q <queue>
+Consider installing packages at the requested versions via `pip` or uninstalling them, installing SmartSim with optional ML dependencies (`pip install smartsim[ml]`), and running `smart clean && smart build ...`
+[SmartSim] INFO SmartSim build complete!
 ```
 
-After obtaining the allocation, make sure to module load your conda or python environment
-with SmartSim and SmartRedis installed.
 
-Compile the simple hello world MPI program.
+</br>
+</br>
+</br>
 
-```bash
+
+Running Examples: SmartSim-Zoo Theta 
+======================================
+
+Set-up: 
+--------
+```bash 
+cd $PREFIX
+git clone https://github.com/eleanor-broadway/SmartSim-Zoo.git
+cd SmartSim-Zoo/theta 
+```
+
+I have set-up submission scripts for each, but you can run an interactive job like this:  
+```bash 
+salloc --nodes=3 --ntasks-per-node=128 --cpus-per-task=1 --time=00:20:00 --partition=standard --qos=short --account=z19
+
+eval "$($PREFIX/miniconda3/bin/conda shell.bash hook)" 
+conda activate a2-smartsim 
+```
+
+</br>
+
+launch_distributed_model.py 
+----------------------------
+
+* Simple model which runs a hello world on each processor. Using 3 nodes and 20 processes per node (60 total). 
+* Setting up an "experiment". 
+* Sets number of tasks per node and total number of tasks. 
+
+```bash 
 cc hello.c -o hello
+sbatch launch_distributed_model.sh 
 ```
 
-Run the model through SmartSim in the interactive allocation
+* In submission script: specify 3 nodes, 128 tasks-per-node. Launching with "python" NOT srun. 
+* In code: specifying 20 tasks-per-node, 60 total. 
+* Output: correctly see hello from 20 cores on 3 nodes. (If we were just launching "srun hello" then we would see all 128 cores say hello). 
+* successfully picks up srun, slurm and jobid from env. 
+* Using logging, we can see that it launches a hello_world job with jobid.0. If launching interactively and launching multiple times in the same allocation, each new hello_world will have the id: jobid.0, jobid.1, jobid.2, etc. 
 
-```bash
-python launch_distributed_model.py
+
+
+
+</br>
+
+launch_database_cluster.py 
+----------------------------
+* Launches a distributed Orchestrator (database cluster) and then uses SmartRedis to communicate with it. 
+* Used to show users how they can interact with the database. 
+* Requires adding the interface to `launch_database_cluster.py`. 
+
+```bash 
+sbatch launch_database_cluster.sh
 ```
 
-Instead of using an interactive allocation, SmartSim jobs can also be
-launched through batch files. This is helpful when waiting a long time
-for queued jobs.
+Sets up a database across 3 of the nodes. All have IPs + port 6780 assigned. Get a "reporting for duty" from all 3 threads. 
 
-The following gives an example of how you could launch the MPI
-model above through a batch script instead of an interactive allocation.
-
-```bash
-#!/bin/bash
-#COBALT -t 10
-#COBALT -n 2
-#COBALT -q <queue>
-#COBALT -A <account>
-
-# activate conda env if needed
-python launch_distributed_model.py
-```
----------
-
-### 2. launch_database_cluster.py
-
-This file shows how to launch a distributed ``Orchestrator`` (database cluster) and
-utilize the SmartRedis Python client to communicate with it. This example is meant
-to provide an example of how users can interact with the database in an interactive
-fashion, possibly in a medium like a jupyter notebook.
-
-This example runs in an interactive allocation with at least three
-nodes and 2 processors per node. be sure to include mpiprocs in your
-allocation.
-
-```bash
-# fill in account and queue parameters
-qsub -l select=3:ncpus=1 -l walltime=00:20:00 -A <account> -q <queue> -I
-```
-After obtaining the allocation, make sure to module load your conda or python environment
-with SmartSim and SmartRedis installed.
-
-Run the workflow with
-
-```bash
-python launch_database_cluster.py
-```
-----------
-### 3. launch_multiple.py
-
-Launch an Orchestrator database in a cluster across three nodes and a data producer
-that will put and get data from the Orchestrator using the SmartRedis Python client.
-
-This example shows how a user can take the previous example a step further by
-launching the application which communicates with the Orchestrator through SmartSim
-as well.
-
-```bash
-# fill in account and queue parameters
-qsub -n 4 -l walltime=00:20:00 -A <account> -q <queue> -I
-```
-After obtaining the allocation, make sure to module load your conda or python environment
-with SmartSim and SmartRedis installed.
-
-run the workflow with
-
-```bash
-python launch_multiple.py
-```
------------
-### 4. launch_ensemble_batch.py
-
-Launch a ensemble of hello world models in a batch created by SmartSim. This
-file can be launched on a head node and will create a batch file for the all
-the jobs to be launched.
-
-The higher level batch capabilities of SmartSim allow users to create many
-batch jobs of differing content without needing to write each one. As well,
-SmartSim acts as a batch process manager in Python allowing interactivity
-with the batch system to create pipelines, dependents, and conditions.
-
-In this case, we create three replicas of the same model through the
-``Experiment.create_ensemble()`` function. ``CobaltBatchSettings`` are created
-to specify resources for the entire batch. ``AprunSettings`` are created
-to specify how each member within the batch should be launched.
-
-Before running the example, be sure to change the ``account`` number in the
-file and any other batch settings for submission.
-
-Then, compile the simple hello world MPI program.
-
-```bash
-cc hello.c -o hello
+```bash 
+Array put in database: [1 2 3 4]
+Array retrieved from database: [1 2 3 4]
 ```
 
-and run the workflow with
 
-```bash
-python launch_ensemble_batch.py
-```
------------
-### 5. launch_mnist.py
+</br>
 
-Launch an orchestrator, a Loader, and a Trainer process.
-The Loader gets the MNIST dataset from disk and puts it on the DB.
-The Trainer gets MNIST from the DB, trains a ResNet18 instance
-and puts the resulting jit-traced model on the DB. The loader
-then uploads the test set on the DB and computes the accuracy
-using the jit-traced model directly on the DB.
+launch_multiple.py
+-------------------
 
-This example runs within a three-node interactive allocation,
-to obtain it just run
-```bash
-# fill in account and queue parameters
-qsub -n 3 -l walltime=00:20:00 -A <account> -q <queue> -I
-```
-and then from the MOM node
-```bash
-python launch_mnist.py
+* Launch a database cluster across 3 nodes (same as `launch_database_cluster.py`) and a data producer which will put and get data from the Orchestrator using SmartRedis. 
+* Requires adding the interface to `launch_multiple.py`. 
+
+```bash 
+sbatch launch_multiple.sh
 ```
 
-Note that the driver expects the MNIST dataset to be available
-in the launching directory. As MOM and compute nodes do not
-have access to the Internet, you can just obtain the file
-from a login node, by running
-```bash
-python get_mnist.py
+* The clustered database needs 3 nodes ALONE, a 4th needs to be used for the application. Database needs to be isolated on it's own node for better performance. 
+
+
+</br>
+
+
+launch_mnist.py 
+----------------
+
+* Launches an orchestrator, a Loader and a Trainer process. 
+* Loader: gets the MNIST dataset from the disk and puts it in the database 
+* Trainer: gets MNIST from the database, trains a ResNet18 instance and puts the model on the DB 
+* Loader: Uploads the test set on to the database and computes the accuracy 
+
+Requires 3 nodes, using a single node database. 
+
+Set up: 
+```bash 
+export PREFIX=/path/to/install/location
+eval "$($PREFIX/miniconda3/bin/conda shell.bash hook)" 
+conda activate a2-smartsim
+python get_mnist.py 
 ```
 
------------
-### 6. Online training and inference with Fortran data producer
+Changes: 
+* launch_mnist.sh: `export SR_SOCKET_TIMEOUT=20000`
+* launch_mnist.py: `experiment.create_database`, add `interface=['hsn0', 'hsn1']`. 
+* mnist_script.py: comment out `import torch`
 
-Launch an orchestrator, a parallel data producer/loader, a parallel trainer
-and an inference process.
-The loader is a parallel Fortran program that emulates a PDE solver,
-iteratively generating new training data as it marches through time steps
-and putting the training data from each rank into the orchestrator.
-The trainer gets the data from the orchestrator at the creation of every new
-training batch and learns the model. In this example, a simple model for a second
-order polynomial is trained. Finally, the trained model is saved to disk as well as
-loaded onto the orchestrator, where the final process performs online inference and
-visualization of the accuracy of the predictions.
-
-You can find the code for this example [here.](https://github.com/FilippoSimini/smartsim_alcf/tree/main/theta/exampleFortran)
-This example is run by submitting a job to the queue in batch mode, running the script
-```bash
-./submit.sh
+Launch on 3 nodes: 
+```bash 
+sbatch launch_mnist.sh 
 ```
-from the login nodes.
-Alternatively, one can submit an interactive job with
-```bash
-qsub -I -q queue -n 4 -t 30 -A charge_account
-```
-and replacing the strings queue and charge_account with the desired names.
-Then, once on the mom nodes, run the script
-```bash
-./run.sh 64 4 256 1 2 1 128 64
-```
-which includes the command line arguments that would have been passed by the submit
-script.
-
-Please note that this example needs to be run with the GNU programming environment
-on Theta, and thus SmartSim and SmartRedis should be installed with the appropriate
-environment as well. You can find scripts to execute the installation of all SmartSim
-components as well as Horovod (needed for the data parallel training) [here.](https://github.com/FilippoSimini/smartsim_alcf/tree/main/theta)
-
-
-
